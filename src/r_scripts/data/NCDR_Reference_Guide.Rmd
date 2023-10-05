@@ -1,0 +1,1953 @@
+---
+title: "NCDR Reference Datasets Guide"
+author: "Andy Wilson - NHS Transformation Unit"
+date: "`r format(Sys.Date(), '%d %B %Y')`"
+output:
+  html_document:
+    toc: true
+    toc_depth: 3
+    toc_float: true
+    css: ../../config/nhs_tu_theme.css
+
+---
+
+
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
+
+source("../requirements/packages.R")
+
+```
+
+```{r logo, echo = FALSE, eval = TRUE}
+
+htmltools::img(src = knitr::image_uri(paste0(here(), "/images/TU_logo_large.png")), 
+               alt = 'logo', 
+               style = 'position:absolute; top:0; right:5%; padding:10px;',
+               width = "180px",
+               heigth = "180px")
+
+```
+
+## Introduction
+***
+
+This pack has been produced to provide an overview of how to join the relevant reference data to key datasets that we use as part of our work within NCDR. At present this pack provides this information for:
+
+* Admitted Patient Care Episodes (APCE) and Spells (APCS)
+* Emergency Care Data Set (ECDS)
+* Outpatient Appointments (OPA)
+
+<br/>
+
+## Admitted Patient Care Episodes (APCE)
+***
+The section below provides example queries to return all of the First Consultant Episodes for patients admitted to East Cheshire Trust on 01/12/2022. The relevant joins to obtain all of the relevant demographic, administrative, clinical and geospatial data are then documented to demonstrate how these are written in the NCDR environment.
+
+### Demographics {.tabset .tabset-fade}
+
+#### Ethnicity
+In NCDR Ethnicity reference data can be obtained via the joins used below:
+```{sql APCE Eth NCDR}
+
+SELECT APCE.[APCE_Ident]
+	    ,APCE.[Ethnic_Group]
+	    ,ETH.[Ethnic_Category_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_EthnicCategory] as [ETH]
+ON APCE.[Ethnic_Group] = ETH.[Ethnic_Category]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Sex
+In NCDR Patient Gender reference data can be obtained via the joins used below:
+```{sql APCE Sex NCDR}
+
+SELECT APCE.[APCE_Ident]
+	    ,APCE.[Sex]
+	    ,PG.[Person_Gender_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_PersonGender] as [PG]
+ON APCE.[Sex] = PG.[Person_Gender_Code]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Marital Status
+In NCDR Marital Status reference data can be obtained via the joins used below:
+```{sql APCE Marital NCDR}
+
+SELECT APCE.[APCE_Ident]
+	    ,APCE.[Marital_Status]
+	    ,MSTAT.[Marital_Status_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_MaritalStatus] as [MSTAT]
+ON APCE.[Marital_Status] = MSTAT.[Marital_Status]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Deprivation (IMD)
+In NCDR Deprivation reference data can be obtained via the joins used below:
+```{sql APCE IMD NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Der_Postcode_LSOA_Code]
+	    ,LSOA.[LSOA_Name]
+	    ,IMD.[IMD_Score]
+	    ,IMD.[IMD_Decile]
+	    ,IMD.[IMD_Rank]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_LSOA] as [LSOA]
+ON APCE.[Der_Postcode_LSOA_Code] = LSOA.[LSOA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_Other_Deprivation_By_LSOA] as [IMD]
+ON LSOA.[LSOA] = IMD.[LSOA_Code]
+AND IMD.[Effective_Snapshot_Date] = '2019-12-31'
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Psychiatric Status
+In NCDR Psychiatric Status reference data can be obtained via the joins used below:
+```{sql APCE Psych NCDR}
+
+SELECT  APCE.[APCE_Ident]
+	    ,APCE.[Psychiatric_Patient_Status]
+	    ,PPSTAT.[Psychiatric_Patient_Status_Reason_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_PsychiatricPatientStatus] as [PPSTAT]
+ON APCE.[Psychiatric_Patient_Status] = PPSTAT.[Psychiatric_Patient_Status_Reason]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Administrative Category
+In NCDR the Administrative Category reference data can be obtained via the joins used below:
+```{sql APCE Admin Cat NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Administrative_Category]
+	    ,ADMCAT.[Administrative_Category_Desc]	  
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_AdministrativeCategory] as [ADMCAT]
+ON APCE.[Administrative_Category] = ADMCAT.[Administrative_Category]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Carer Support
+In NCDR the Carer Support Indicator reference data can be obtained via the joins used below:
+```{sql APCE Carer Support NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Carer_Support_Indicator]
+	    ,CSI.[Carer_Support_Ind_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_CarerSupportIndicator] as [CSI]
+ON APCE.[Carer_Support_Indicator] = CSI.[Carer_Support_Ind]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Withheld Identity
+In NCDR the Withheld Identity Reason reference data can be obtained via the joins used below:
+```{sql APCE Withheld NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Withheld_Identity_Reason]
+	    ,WIR.[Withheld_Identity_Reason_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_WithheldIdentityReason] as [WIR]
+ON APCE.[Withheld_Identity_Reason] = WIR.[Withheld_Identity_Reason]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+### Organisation {.tabset .tabset-fade}
+
+#### Provider
+In NCDR the Provider organisation reference data can be obtained via the joins used below:
+```{sql APCE Provider NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Der_Provider_Code]
+	    ,ORGPRO.[Organisation_Name]
+	    ,ORGPRO.[STP_Code] as [Provider_ICB_Code]
+	    ,ORGPRO.[STP_Name] as [Provider_ICB_Name]
+	    ,ORGPRO.[Region_Code] as [Provider_Region_Code]
+	    ,ORGPRO.[Region_Name] as [Provider_Region_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Hierarchies] as [ORGPRO]
+ON APCE.[Der_Provider_Code] = ORGPRO.[Organisation_Code]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Provider Site
+In NCDR the Provider site reference data can be obtained via the joins used below:
+```{sql APCE Provider Site NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Der_Provider_Site_Code]
+	    ,PRO_SITE.[Site_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Site_Mappings] as [PRO_SITE]
+ON APCE.[Der_Provider_Site_Code] = PRO_SITE.[Site_Code]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Commissioner
+In NCDR the Commissioner organisation reference data can be obtained via the joins used below:
+```{sql APCE Commissioner NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Der_Commissioner_Code]
+	    ,ORGCOMM.[Organisation_Name] as [Commissioner_Name]
+	    ,ORGCOMM.[STP_Code] as [Commissioner_ICB_Code]
+	    ,ORGCOMM.[STP_Name] as [Commissioner_ICB_Name]
+	    ,ORGCOMM.[Region_Code] as [Commissioner_Region_Code]
+	    ,ORGCOMM.[Region_Name] as [Commissioner_Region_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Commissioner_Hierarchies] as [ORGCOMM]
+ON APCE.[Der_Commissioner_Code] = ORGCOMM.[Organisation_Code]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+### Geospatial {.tabset .tabset-fade}
+
+#### LSOA
+In NCDR the patients resident LSOA reference data can be obtained via the joins used below:
+```{sql APCE LSOA NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Der_Postcode_LSOA_Code]
+	  ,LSOA.[LSOA_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_LSOA] as [LSOA]
+ON APCE.[Der_Postcode_LSOA_Code] = LSOA.[LSOA]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Electoral Ward
+In NCDR the patients resident Electoral Ward reference data can be obtained via the joins used below:
+```{sql APCE Electoral Ward NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Der_Postcode_Electoral_Ward]
+	    ,WARD.[Ward_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Wards] as [WARD]
+ON APCE.[Der_Postcode_Electoral_Ward] = WARD.[Ward_Code]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+### Specialty and Treatment Function {.tabset .tabset-fade}
+
+#### Main Specialty
+In NCDR the Main Specialty reference data can be obtained via the joins used below:
+```{sql APCE Main Spec NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Main_Specialty_Code]
+	    ,MSPEC.[Main_Specialty_Desc]
+	    ,MSPEC.[Main_Specialty_Group]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_MainSpecialty] as [MSPEC]
+ON APCE.[Main_Specialty_Code] = MSPEC.[Main_Specialty_Code]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Treatment Function
+In NCDR the Treatment Function reference data can be obtained via the joins used below:
+```{sql APCE TFC NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Treatment_Function_Code]
+	    ,TFC.[Treatment_Function_Desc]
+	    ,TFC.[Treatment_Function_Group]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_TreatmentFunction] as [TFC]
+ON APCE.[Treatment_Function_Code] = TFC.[Treatment_Function_Code]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+### APCE Specific {.tabset .tabset-fade}
+
+#### Primary Procedure
+In NCDR the Primary Procedure reference data can be obtained via the joins used below:
+```{sql APCE Prim Proc NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE_PROC.[Primary_Procedure_Code]
+	    ,OPCS.[OPCS_L4_Desc]
+	    ,OPCS.[OPCS_L2_Desc]
+	    ,APCE_PROC.[Primary_Procedure_Date]
+	 
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE_Proc] as [APCE_PROC]
+ON APCE.[APCE_Ident] = APCE_PROC.[APCE_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ClinCode_OPCS] as [OPCS]
+ON APCE_PROC.[Primary_Procedure_Code] = OPCS.[OPCS_L4_Code]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+This can easily be amended and replicated to obtain reference data for any secondary procedures.
+
+<br/>
+
+#### Primary Diagnosis
+In NCDR the Primary Diagnosis reference data can be obtained via the joins used below:
+```{sql APCE Prim Diag NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE_DIAG.[Primary_Diagnosis_Code]
+	    ,REPLACE(APCE_DIAG.[Primary_Diagnosis_Code],'-','') as [Primary_Diagnosis_Code_TRUNC]
+	    ,ICD.[ICD10_L4_Code]
+	    ,ICD.[ICD10_L4_Desc]
+	    ,ICD.[ICD10_L2_Desc]
+	 
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE_Diag] as [APCE_DIAG]
+ON APCE.[APCE_Ident] = APCE_DIAG.[APCE_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ClinCode_ICD10_5ed] as [ICD]
+ON REPLACE(APCE_DIAG.[Primary_Diagnosis_Code],'-','') = ICD.[ICD10_L4_Code]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+This can easily be amended and replicated to obtain reference data for any secondary diagnoses.
+
+<br/>
+
+#### Admission Method
+In NCDR the Admission Method reference data can be obtained via the joins used below:
+```{sql APCE Adm Method NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Admission_Method]
+	    ,ADM.[Admission_Method_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_AdmissionMethod] as [ADM]
+ON APCE.[Admission_Method] = ADM.[Admission_Method_Der]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Admission Source
+In NCDR the Admission Source reference data can be obtained via the joins used below:
+```{sql APCE Adm Source NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Source_of_Admission]
+	    ,ADMS.[Admission_Source_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_AdmissionSource] as [ADMS]
+ON APCE.[Source_of_Admission] = ADMS.[Admission_Source]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Discharge Destination
+In NCDR the Discharge Destination reference data can be obtained via the joins used below:
+```{sql APCE Dis Dest NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Discharge_Destination]
+	    ,DISDES.[Discharge_Destination_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_DischargeDestination] as [DISDES]
+ON APCE.[Discharge_Destination] = DISDES.[Discharge_Destination]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Discharge Method
+In NCDR the Discharge Method reference data can be obtained via the joins used below:
+```{sql APCE Dis Meth NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Discharge_Method]
+	    ,DISMET.[Discharge_Method_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_DischargeMethod] as [DISMET]
+ON APCE.[Discharge_Method] = DISMET.[Discharge_Method]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Intended Management
+In NCDR the Intended Management reference data can be obtained via the joins used below:
+```{sql APCE Int Mgmt NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Intended_Management]
+	  ,INTM.[Intended_Management_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_IntendedManagement] as [INTM]
+ON APCE.[Intended_Management] = INTM.[Intended_Management]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+#### Patient Classification
+In NCDR the Patient Classification reference data can be obtained via the joins used below:
+```{sql APCE Pat Class NCDR}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Patient_Classification]
+	    ,PTCLASS.[Patient_Classification_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_PatientClassification] as [PTCLASS]
+ON APCE.[Patient_Classification] = PTCLASS.[Patient_Classification]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+### Full Script
+The script below shows how to run all of these joins in one main script:
+```{sql APCE Main}
+
+SELECT APCE.[APCE_Ident]
+      ,APCE.[Admission_Date]
+	  ,APCE.[Discharge_Date]
+	  ,APCE.[Episode_Start_Date]
+	  ,APCE.[Episode_End_Date]
+	  ,APCE.[Episode_Number]
+      ,APCE.[Ethnic_Group]
+      ,ETH.[Ethnic_Category_Desc]
+	  ,PG.[Person_Gender_Desc]
+	  ,MSTAT.[Marital_Status_Desc]
+	  ,APCE.[Der_Postcode_LSOA_Code]
+	  ,LSOA.[LSOA_Name]
+	  ,IMD.[IMD_Score]
+	  ,IMD.[IMD_Decile]
+	  ,IMD.[IMD_Rank]
+	  ,PPSTAT.[Psychiatric_Patient_Status_Reason_Desc]
+	  ,ADMCAT.[Administrative_Category_Desc]
+	  ,CSI.[Carer_Support_Ind_Desc]
+	  ,WIR.[Withheld_Identity_Reason_Desc]
+	  ,ORGPRO.[Organisation_Name]
+	  ,ORGPRO.[STP_Code] as [Provider_ICB_Code]
+	  ,ORGPRO.[STP_Name] as [Provider_ICB_Name]
+	  ,ORGPRO.[Region_Code] as [Provider_Region_Code]
+	  ,ORGPRO.[Region_Name] as [Provider_Region_Name]
+	  ,PRO_SITE.[Site_Name]
+	  ,ORGCOMM.[Organisation_Name] as [Commissioner_Name]
+	  ,ORGCOMM.[STP_Code] as [Commissioner_ICB_Code]
+	  ,ORGCOMM.[STP_Name] as [Commissioner_ICB_Name]
+	  ,ORGCOMM.[Region_Code] as [Commissioner_Region_Code]
+	  ,ORGCOMM.[Region_Name] as [Commissioner_Region_Name]
+	  ,LSOA.[LSOA_Name]
+	  ,WARD.[Ward_Name]
+	  ,APCE.[Main_Specialty_Code]
+	  ,MSPEC.[Main_Specialty_Desc]
+	  ,MSPEC.[Main_Specialty_Group]
+	  ,APCE.[Treatment_Function_Code]
+	  ,TFC.[Treatment_Function_Desc]
+	  ,TFC.[Treatment_Function_Group]
+	  ,APCE_PROC.[Primary_Procedure_Code]
+	  ,OPCS.[OPCS_L4_Desc]
+	  ,OPCS.[OPCS_L2_Desc]
+	  ,APCE_PROC.[Primary_Procedure_Date]
+	  ,APCE_DIAG.[Primary_Diagnosis_Code]
+	  ,REPLACE(APCE_DIAG.[Primary_Diagnosis_Code],'-','') as [Primary_Diagnosis_Code_TRUNC]
+	  ,ICD.[ICD10_L4_Code]
+	  ,ICD.[ICD10_L4_Desc]
+	  ,ICD.[ICD10_L2_Desc]
+	  ,APCE.[Admission_Method]
+	  ,ADM.[Admission_Method_Desc]
+	  ,APCE.[Source_of_Admission]
+	  ,ADMS.[Admission_Source_Desc]
+	  ,APCE.[Discharge_Destination]
+	  ,DISDES.[Discharge_Destination_Desc]
+	  ,APCE.[Discharge_Method]
+	  ,DISMET.[Discharge_Method_Desc]
+	  ,APCE.[Intended_Management]
+	  ,INTM.[Intended_Management_Desc]
+	  ,APCE.[Patient_Classification]
+	  ,PTCLASS.[Patient_Classification_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE] as [APCE]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_EthnicCategory] as [ETH]
+ON APCE.[Ethnic_Group] = ETH.[Ethnic_Category]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_PersonGender] as [PG]
+ON APCE.[Sex] = PG.[Person_Gender_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_MaritalStatus] as [MSTAT]
+ON APCE.[Marital_Status] = MSTAT.[Marital_Status]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_LSOA] as [LSOA]
+ON APCE.[Der_Postcode_LSOA_Code] = LSOA.[LSOA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_Other_Deprivation_By_LSOA] as [IMD]
+ON LSOA.[LSOA] = IMD.[LSOA_Code]
+AND IMD.[Effective_Snapshot_Date] = '2019-12-31'
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_PsychiatricPatientStatus] as [PPSTAT]
+ON APCE.[Psychiatric_Patient_Status] = PPSTAT.[Psychiatric_Patient_Status_Reason]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_AdministrativeCategory] as [ADMCAT]
+ON APCE.[Administrative_Category] = ADMCAT.[Administrative_Category]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_CarerSupportIndicator] as [CSI]
+ON APCE.[Carer_Support_Indicator] = CSI.[Carer_Support_Ind]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_WithheldIdentityReason] as [WIR]
+ON APCE.[Withheld_Identity_Reason] = WIR.[Withheld_Identity_Reason]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Hierarchies] as [ORGPRO]
+ON APCE.[Der_Provider_Code] = ORGPRO.[Organisation_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Site_Mappings] as [PRO_SITE]
+ON APCE.[Der_Provider_Site_Code] = PRO_SITE.[Site_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Commissioner_Hierarchies] as [ORGCOMM]
+ON APCE.[Der_Commissioner_Code] = ORGCOMM.[Organisation_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Wards] as [WARD]
+ON APCE.[Der_Postcode_Electoral_Ward] = WARD.[Ward_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_MainSpecialty] as [MSPEC]
+ON APCE.[Main_Specialty_Code] = MSPEC.[Main_Specialty_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_TreatmentFunction] as [TFC]
+ON APCE.[Treatment_Function_Code] = TFC.[Treatment_Function_Code]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE_Proc] as [APCE_PROC]
+ON APCE.[APCE_Ident] = APCE_PROC.[APCE_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ClinCode_OPCS] as [OPCS]
+ON APCE_PROC.[Primary_Procedure_Code] = OPCS.[OPCS_L4_Code]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_APCE_Diag] as [APCE_DIAG]
+ON APCE.[APCE_Ident] = APCE_DIAG.[APCE_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ClinCode_ICD10_5ed] as [ICD]
+ON REPLACE(APCE_DIAG.[Primary_Diagnosis_Code],'-','') = ICD.[ICD10_L4_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_AdmissionMethod] as [ADM]
+ON APCE.[Admission_Method] = ADM.[Admission_Method_Der]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_AdmissionSource] as [ADMS]
+ON APCE.[Source_of_Admission] = ADMS.[Admission_Source]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_DischargeDestination] as [DISDES]
+ON APCE.[Discharge_Destination] = DISDES.[Discharge_Destination]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_DischargeMethod] as [DISMET]
+ON APCE.[Discharge_Method] = DISMET.[Discharge_Method]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_IntendedManagement] as [INTM]
+ON APCE.[Intended_Management] = INTM.[Intended_Management]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_APC_PatientClassification] as [PTCLASS]
+ON APCE.[Patient_Classification] = PTCLASS.[Patient_Classification]
+
+WHERE APCE.[Episode_Number] = 1
+AND APCE.[Der_Provider_Code] = 'RJN'
+AND APCE.[Admission_Date] = '2022-12-01'
+
+```
+
+<br/>
+
+## Emergency Care Data Set (ECDS)
+***
+The sections below show how to join ECDS fields to their relevant reference data. In these examples the data is extracted for Wythenshawe Hospital (R0A07), for attendances on 10th January 2023 having removed any possible duplicate records and excluded planned arrivals.
+
+### Demographics {.tabset .tabset-fade}
+
+#### Ethnicity 
+In NCDR the Ethnicity reference data can be obtained via the joins used below:
+```{sql ECDS Eth NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,ECDS.[Ethnic_Category]
+	    ,ETH.[Ethnic_Category_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_EthnicCategory] as ETH
+ON ECDS.[Ethnic_Category] = ETH.[Ethnic_Category]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+#### Sex
+In NCDR the Sex reference data can be obtained via the joins used below:
+```{sql ECDS Sex NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,ECDS.[Sex]
+	  ,PG.[Person_Gender_Desc] as [Gender]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_PersonGender] as PG
+ON ECDS.[Sex] = PG.[Person_Gender_Code]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+#### Deprivation (IMD)
+In NCDR Deprivation reference data can be obtained via the joins used below:
+```{sql ECDS IMD NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,ECDS.[Der_Postcode_LSOA_Code]
+	  ,LSOA.[LSOA_Name]
+	  ,IMD.[IMD_Score]
+    ,IMD.[IMD_Decile]
+    ,IMD.[IMD_Rank]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_LSOA] as LSOA
+ON ECDS.[Der_Postcode_LSOA_Code] = LSOA.[LSOA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_Other_Deprivation_By_LSOA] as IMD
+ON LSOA.[LSOA] = IMD.[LSOA_Code]
+AND IMD.[Effective_Snapshot_Date] = '2019-12-31'
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+#### Withheld Identity
+In NCDR the Withheld Identity Reason reference data can be obtained via the joins used below:
+```{sql ECDS Withheld NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,ECDS.[Withheld_Identity_Reason]
+      ,WIR.[Withheld_Identity_Reason_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_WithheldIdentityReason] as WIR
+ON ECDS.[Withheld_Identity_Reason] = WIR.[Withheld_Identity_Reason]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+### Organisation {.tabset .tabset-fade}
+
+#### Provider
+In NCDR the Provider organisation reference data can be obtained via the joins used below:
+```{sql ECDS Provider NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,ECDS.[Der_Provider_Code]
+      ,ORGPRO.[Organisation_Name] as [Provider_Name]
+	    ,ORGPRO.[STP_Code] as [Provider_ICB_Code]
+	    ,ORGPRO.[STP_Name] as [Provider_ICB_Name]
+	    ,ORGPRO.[Region_Code] as [Provider_Region_Code]
+	    ,ORGPRO.[Region_Name] as [Provider_Region_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Hierarchies] as ORGPRO
+ON ECDS.[Der_Provider_Code] = ORGPRO.[Organisation_Code]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+
+<br/>
+
+#### Provider Site
+```{sql ECDS Provider Site NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,ECDS.[Der_Provider_Site_Code]
+	    ,PRO_Site.[Provider_Site_Name] as [Provider_Site]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_ProviderSite] as [PRO_Site]
+ON ECDS.[Der_Provider_Site_Code] = PRO_Site.[Provider_Site_Code]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+#### Commissioner
+```{sql ECDS Commissioner NCDR}
+
+SELECT ECDS.[EC_Ident]
+	  ,ECDS.[Der_Commissioner_Code]
+	  ,ORGCOMM.[Organisation_Name] as [Commissioner_Name]
+	  ,ORGCOMM.[STP_Code] as [Commissioner_ICB_Code]
+	  ,ORGCOMM.[STP_Name] as [Commissioner_ICB_Name]
+	  ,ORGCOMM.[Region_Code] as [Commissioner_Region_Code]
+	  ,ORGCOMM.[Region_Name] as [Commissioner_Region_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Commissioner_Hierarchies] as ORGCOMM
+ON ECDS.[Der_Commissioner_Code] = ORGCOMM.[Organisation_Code]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+### Geospatial {.tabset .tabset-fade}
+
+#### LSOA
+In NCDR the patients resident LSOA reference data can be obtained via the joins used below:
+```{sql ECDS LSOA NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,ECDS.[Der_Postcode_LSOA_Code]
+	  ,LSOA.[LSOA_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_LSOA] as LSOA
+ON ECDS.[Der_Postcode_LSOA_Code] = LSOA.[LSOA]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+
+<br/>
+
+#### Electoral Ward
+In NCDR the patients resident Electoral Ward reference data can be obtained via the joins used below:
+```{sql ECDS Electoral Ward NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,ECDS.[Der_Postcode_Electoral_Ward]
+	  ,WARD.[Ward_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Wards] as [WARD]
+ON ECDS.[Der_Postcode_Electoral_Ward] = WARD.[Ward_Code]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+### ECDS Specific {.tabset .tabset-fade}
+
+#### Chief Complaint Code
+In NCDR the patients Chief Complaint Code reference data can be obtained via the joins used below:
+```{sql ECDS Chief Complaint NCDR}
+
+SELECT ECDS.[EC_Ident]
+	  ,ECDS.[EC_Chief_Complaint_SNOMED_CT]
+	  ,CCOM.[ChiefComplaintCodeDescription]
+	  ,CCOMG.[ChiefComplaintGrouping]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Chief_Complaint] as [CCOM]
+ON ECDS.[EC_Chief_Complaint_SNOMED_CT] = CCOM.[ChiefComplaintCode]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Chief_Complaint_Group] as [CCOMG]
+ON ECDS.[EC_Chief_Complaint_SNOMED_CT] = CCOMG.[ChiefComplaintCode]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+#### Diagnosis
+In NCDR the patients Diagnosis reference data can be obtained via the joins used below:
+```{sql ECDS Diag 01 NCDR}
+
+SELECT ECDS.[EC_Ident]
+	  ,ECDS_DIAG.[EC_Diagnosis_01]
+	  ,DIAGS.[DiagnosisDescription]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC_Diagnosis] as [ECDS_DIAG]
+ON ECDS.[EC_Ident] = ECDS_DIAG.[EC_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Diagnosis] as [DIAGS]
+ON [ECDS_DIAG].[EC_Diagnosis_01] = DIAGS.[DiagnosisCode]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+This join can easily be modified and replicated to join to secondary diagnoses made in position 02 onwards.
+
+<br/>
+
+#### Investigations
+In NCDR the patients Investigations reference data can be obtained via the joins used below:
+```{sql ECDS Investigation 01 NCDR}
+
+SELECT ECDS.[EC_Ident]
+	  ,ECDS_INV.[EC_Investigation_01]
+	  ,INVS.[InvestigationDescription]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC_Investigation] as [ECDS_INV]
+ON ECDS.[EC_Ident] = ECDS_INV.[EC_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Investigation] as [INVS]
+ON ECDS_INV.[EC_Investigation_01] = INVS.[InvestigationCode]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+This join can easily be modified and replicated to join to other investigations made in position 02 onwards.
+
+<br/>
+
+#### Treatments
+In NCDR the patients Treatments reference data can be obtained via the joins used below:
+```{sql ECDS Treatment 01 NCDR}
+
+SELECT ECDS.[EC_Ident]
+	  ,ECDS_TRT.[EC_Treatment_01]
+	  ,TRTS.[ProcedureDescription] as [TreatmentDescription]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC_Treatment] as [ECDS_TRT]
+ON ECDS.[EC_Ident] = ECDS_TRT.[EC_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Procedure] as [TRTS]
+ON ECDS_TRT.[EC_Treatment_01] = TRTS.[ProcedureCode]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+This join can easily be modified and replicated to join to other treatments made in position 02 onwards.
+
+<br/>
+
+#### Injury Intent
+```{sql ECDS Injury Intent NCDR}
+
+SELECT ECDS.[EC_Ident]
+	  ,ECDS.[EC_Injury_Intent_SNOMED_CT]
+	  ,INJINT.[InjuryIntentDescription]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Injury_Intent] as [INJINT]
+ON ECDS.[EC_Injury_Intent_SNOMED_CT] = INJINT.[InjuryIntentCode]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+#### Arrival Mode
+In NCDR the patients Arrival Mode reference data can be obtained via the joins used below:
+```{sql ECDS Arrival Mode NCDR}
+
+SELECT ECDS.[EC_Ident]
+	  ,ECDS.[EC_Arrival_Mode_SNOMED_CT]
+	  ,ARI.[ArrivalModeDescription]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Arrival_Mode] as [ARI]
+ON ECDS.[EC_Arrival_Mode_SNOMED_CT] = ARI.[ArrivalModeCode]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+#### Discharge Destination
+In NCDR the patients Discharge Destination reference data can be obtained via the joins used below:
+```{sql ECDS Dis Des NCDR}
+
+SELECT ECDS.[EC_Ident]
+	  ,ECDS.[Discharge_Destination_SNOMED_CT]
+	  ,DISDES.[DischargeDestinationDescription]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Discharge_Destination] as [DISDES]
+ON ECDS.[Discharge_Destination_SNOMED_CT] = DISDES.[DischargeDestinationCode]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+#### Acuity
+In NCDR the patients Acuity reference data can be obtained via the joins used below:
+```{sql ECDS Acuity NCDR}
+
+SELECT ECDS.[EC_Ident]
+	  ,ECDS.[EC_Acuity_SNOMED_CT]
+	  ,ACT.[AcuityDescription]
+	  ,ACT.[AcuityKey]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Acuity] as ACT
+ON ECDS.[EC_Acuity_SNOMED_CT] = ACT.[AcuityCode]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+
+<br/>
+
+#### Attendance Source
+In NCDR the patients Attendance Source reference data can be obtained via the joins used below:
+```{sql ECDS Att Source NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,ECDS.[EC_Attendance_Source_SNOMED_CT]
+      ,ATTSRC.[AttendanceSourceDescription]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Attendance_Source] as [ATTSRC]
+ON ECDS.[EC_Attendance_Source_SNOMED_CT] = ATTSRC.[AttendanceSourceCode]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+<br/>
+
+#### HRG
+In NCDR the patients HRG (for 22/23) can be obtained via the joins used below:
+```{sql ECDS HRG 2223 NCDR}
+
+SELECT ECDS.[EC_Ident]
+      ,HRG_2223.[Attend_Core_HRG]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] as [ECDS]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC_2223_Der] as [HRG_2223]
+ON ECDS.[EC_Ident] = HRG_2223.[EC_Ident]
+
+WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+AND ECDS.[Arrival_Date] = '2023-01-10'
+AND ECDS.[Der_Dupe_Flag] = 0
+AND ECDS.[Arrival_Planned] = 'FALSE'
+
+```
+
+This can easily be amended for other financial years HRGs.
+
+<br/>
+
+### Full Script
+The script below shows how to run all of these joins in one main script:
+```{sql ECDS main }
+
+SELECT ECDS.[EC_Ident]
+	    ,ECDS.[EC_Department_Type]
+	    ,ECDS.[Der_EC_Arrival_Date_Time]
+	    ,ECDS.[Der_EC_Departure_Date_Time]
+	    ,ECDS.[EC_Initial_Assessment_Time_Since_Arrival]
+	    ,ECDS.[EC_Seen_For_Treatment_Time_Since_Arrival]
+	    ,ECDS.[EC_Decision_To_Admit_Time_Since_Arrival]
+	    ,ECDS.[Clinically_Ready_To_Proceed_Time_Since_Arrival]
+	    ,ECDS.[EC_Conclusion_Time_Since_Arrival]
+	    ,ECDS.[EC_Departure_Time_Since_Arrival]
+	    ,ECDS.[Der_Age_At_CDS_Activity_Date] as [Age]
+	    ,PG.[Person_Gender_Desc] as [Gender]
+	    ,ETH.[Ethnic_Category_Desc]
+	    ,ECDS.[Der_Postcode_LSOA_Code]
+      ,LSOA.[LSOA_Name]
+      ,IMD.[IMD_Score]
+	    ,IMD.[IMD_Decile]
+      ,IMD.[IMD_Rank]
+      ,WIR.[Withheld_Identity_Reason_Desc]
+	    ,LSOA.[LSOA_Name]
+      ,WARD.[Ward_Name]
+	    ,ECDS.[Der_Provider_Site_Code]
+	    ,PRO_Site.[Provider_Site_Name] as [Provider_Site]
+	    ,ECDS.[Der_Provider_Code]
+	    ,ORGPRO.[Organisation_Name] as [Provider_Name]
+	    ,ORGPRO.[STP_Code] as [Provider_ICB_Code]
+	    ,ORGPRO.[STP_Name] as [Provider_ICB_Name]
+	    ,ORGPRO.[Region_Code] as [Provider_Region_Code]
+	    ,ORGPRO.[Region_Name] as [Provider_Region_Name]
+	    ,ORGCOMM.[Organisation_Name] as [Commissioner_Name]
+	    ,ORGCOMM.[STP_Code] as [Commissioner_ICB_Code]
+	    ,ORGCOMM.[STP_Name] as [Commissioner_ICB_Name]
+	    ,ORGCOMM.[Region_Code] as [Commissioner_Region_Code]
+	    ,ORGCOMM.[Region_Name] as [Commissioner_Region_Name]
+	    ,ECDS.[EC_Chief_Complaint_SNOMED_CT]
+      ,CCOM.[ChiefComplaintCodeDescription]
+      ,CCOMG.[ChiefComplaintGrouping]
+	    ,ECDS_DIAG.[EC_Diagnosis_01]
+      ,DIAGS.[DiagnosisDescription]
+	    ,ECDS_INV.[EC_Investigation_01]
+      ,INVS.[InvestigationDescription]
+	    ,ECDS_TRT.[EC_Treatment_01]
+      ,TRTS.[ProcedureDescription] as [TreatmentDescription]
+	    ,ECDS.[EC_Injury_Intent_SNOMED_CT]
+      ,INJINT.[InjuryIntentDescription]
+	    ,ECDS.[EC_Arrival_Mode_SNOMED_CT]
+      ,ARI.[ArrivalModeDescription]
+	    ,ECDS.[Discharge_Destination_SNOMED_CT]
+      ,DISDES.[DischargeDestinationDescription]
+	    ,ECDS.[EC_Acuity_SNOMED_CT]
+      ,ACT.[AcuityDescription]
+      ,ACT.[AcuityKey]
+	    ,ECDS.[EC_Attendance_Source_SNOMED_CT]
+      ,ATTSRC.[AttendanceSourceDescription]
+	    ,HRG_2223.[Attend_Core_HRG]
+
+  FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC] AS [ECDS]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_PersonGender] as [PG]
+  ON ECDS.[Sex] = PG.[Person_Gender_Code]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_EthnicCategory] as [ETH]
+  ON ECDS.[Ethnic_Category] = ETH.[Ethnic_Category]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_LSOA] as [LSOA]
+  ON ECDS.[Der_Postcode_LSOA_Code] = LSOA.[LSOA]
+  
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_Other_Deprivation_By_LSOA] as [IMD]
+  ON LSOA.[LSOA] = IMD.[LSOA_Code]
+  AND IMD.[Effective_Snapshot_Date] = '2019-12-31'
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_WithheldIdentityReason] as [WIR]
+  ON ECDS.[Withheld_Identity_Reason] = WIR.[Withheld_Identity_Reason]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_ProviderSite] as [PRO_Site]
+  ON ECDS.[Der_Provider_Site_Code] = PRO_Site.[Provider_Site_Code]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Hierarchies] as [ORGPRO]
+  ON ECDS.[Der_Provider_Code] = ORGPRO.[Organisation_Code]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Commissioner_Hierarchies] as [ORGCOMM]
+  ON ECDS.[Der_Commissioner_Code] = ORGCOMM.[Organisation_Code]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Wards] as [WARD]
+  ON ECDS.[Der_Postcode_Electoral_Ward] = WARD.[Ward_Code]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Chief_Complaint] as [CCOM]
+  ON ECDS.[EC_Chief_Complaint_SNOMED_CT] = CCOM.[ChiefComplaintCode]
+  
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Chief_Complaint_Group] as [CCOMG]
+  ON ECDS.[EC_Chief_Complaint_SNOMED_CT] = CCOMG.[ChiefComplaintCode]
+
+  LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC_Diagnosis] as [ECDS_DIAG]
+  ON ECDS.[EC_Ident] = ECDS_DIAG.[EC_Ident]
+  
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Diagnosis] as [DIAGS]
+  ON [ECDS_DIAG].[EC_Diagnosis_01] = DIAGS.[DiagnosisCode]
+
+  LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC_Investigation] as [ECDS_INV]
+  ON ECDS.[EC_Ident] = ECDS_INV.[EC_Ident]
+  
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Investigation] as [INVS]
+  ON ECDS_INV.[EC_Investigation_01] = INVS.[InvestigationCode]
+
+  LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC_Treatment] as [ECDS_TRT]
+  ON ECDS.[EC_Ident] = ECDS_TRT.[EC_Ident]
+  
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Procedure] as [TRTS]
+  ON ECDS_TRT.[EC_Treatment_01] = TRTS.[ProcedureCode]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Injury_Intent] as [INJINT]
+  ON ECDS.[EC_Injury_Intent_SNOMED_CT] = INJINT.[InjuryIntentCode]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Arrival_Mode] as [ARI]
+  ON ECDS.[EC_Arrival_Mode_SNOMED_CT] = ARI.[ArrivalModeCode]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Discharge_Destination] as [DISDES]
+  ON ECDS.[Discharge_Destination_SNOMED_CT] = DISDES.[DischargeDestinationCode]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Acuity] as [ACT]
+  ON ECDS.[EC_Acuity_SNOMED_CT] = ACT.[AcuityCode]
+
+  LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ECDS_Attendance_Source] as [ATTSRC]
+  ON ECDS.[EC_Attendance_Source_SNOMED_CT] = ATTSRC.[AttendanceSourceCode]
+
+  LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SUS_EC_2223_Der] as [HRG_2223]
+  ON ECDS.[EC_Ident] = HRG_2223.[EC_Ident]
+
+  WHERE ECDS.[Der_Provider_Site_Code] = 'R0A07'
+  AND ECDS.[Arrival_Date] = '2023-01-10'
+  AND ECDS.[Der_Dupe_Flag] = 0
+  AND ECDS.[Arrival_Planned] = 'FALSE'
+
+
+```
+
+<br/>
+
+## Outpatients (OPA)
+The section below provides example queries to return all of the Outpatient Appointments (including attendances and cancellations etc.) for East Lancashire Hospitals NHS Trust on 11/10/2022. The relevant joins to obtain all of the relevant demographic, administrative, clinical and geospatial data are then documented to demonstrate are written in the NCDR environment.
+
+### Demographics {.tabset .tabset-fade}
+
+#### Ethnicity
+In NCDR Ethnicity reference data can be obtained via the joins used below:
+```{sql OPA Eth NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Ethnic_Category]
+	  ,ETH.[Ethnic_Category_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_EthnicCategory] as [ETH]
+ON OPA.[Ethnic_Category] = ETH.[Ethnic_Category]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+
+<br/>
+
+#### Sex
+In NCDR Sex reference data can be obtained via the joins used below:
+```{sql OPA Sex NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Sex]
+	  ,PG.[Person_Gender_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_PersonGender] as [PG]
+ON OPA.[Sex] = PG.[Person_Gender_Code]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+
+<br/>
+
+#### Deprivation (IMD)
+In NCDR Deprivation reference data can be obtained via the joins used below:
+```{sql OPA IMD NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Der_Postcode_LSOA_Code]
+	  ,LSOA.[LSOA_Name]
+	  ,IMD.[IMD_Score]
+      ,IMD.[IMD_Decile]
+      ,IMD.[IMD_Rank]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_LSOA] as [LSOA]
+ON OPA.[Der_Postcode_LSOA_Code] = LSOA.[LSOA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_Other_Deprivation_By_LSOA] as [IMD]
+ON LSOA.[LSOA] = IMD.[LSOA_Code]
+AND IMD.[Effective_Snapshot_Date] = '2019-12-31'
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+
+<br/>
+
+#### Administrative Category
+In NCDR Administrative Category reference data can be obtained via the joins used below:
+```{sql OPA Adm Cat NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Administrative_Category]
+	  ,ADMCAT.[Administrative_Category_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_AdministrativeCategory] as [ADMCAT]
+ON OPA.[Administrative_Category] = ADMCAT.[Administrative_Category]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Carer Support
+In NCDR Carer Support Indicator reference data can be obtained via the joins used below:
+```{sql OPA Carer Support NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Carer_Support_Indicator]
+	  ,CSI.[Carer_Support_Ind_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_CarerSupportIndicator] as [CSI]
+ON OPA.[Carer_Support_Indicator] = CSI.[Carer_Support_Ind]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Withheld Identity Reason
+In NCDR Withheld Identity Reason reference data can be obtained via the joins used below:
+```{sql OPA Withheld NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Withheld_Identity_Reason]
+	  ,WIR.[Withheld_Identity_Reason_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_WithheldIdentityReason] as [WIR]
+ON OPA.[Withheld_Identity_Reason] = WIR.[Withheld_Identity_Reason]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+
+### Organisation {.tabset .tabset-fade}
+
+#### Provider
+In NCDR Provider reference data can be obtained via the joins used below:
+```{sql OPA Provider NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Der_Provider_Code]
+      ,ORGPRO.[Organisation_Name]
+      ,ORGPRO.[STP_Code] as [Provider_ICB_Code]
+      ,ORGPRO.[STP_Name] as [Provider_ICB_Name]
+      ,ORGPRO.[Region_Code] as [Provider_Region_Code]
+      ,ORGPRO.[Region_Name] as [Provider_Region_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Hierarchies] as [ORGPRO]
+ON OPA.[Der_Provider_Code] = ORGPRO.[Organisation_Code]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+
+#### Site
+In NCDR Provider reference data can be obtained via the joins used below:
+```{sql OPA Provider Site NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Der_Provider_Site_Code]
+      ,PRO_SITE.[Site_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Site_Mappings] as [PRO_SITE]
+ON OPA.[Der_Provider_Site_Code] = PRO_SITE.[Site_Code]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Commissioner
+In NCDR the Commissioner organisation reference data can be obtained via the joins used below:
+```{sql OPA Commissioner NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Der_Commissioner_Code]
+	  ,ORGCOMM.[Organisation_Name] as [Commissioner_Name]
+	  ,ORGCOMM.[STP_Code] as [Commissioner_ICB_Code]
+	  ,ORGCOMM.[STP_Name] as [Commissioner_ICB_Name]
+	  ,ORGCOMM.[Region_Code] as [Commissioner_Region_Code]
+	  ,ORGCOMM.[Region_Name] as [Commissioner_Region_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Commissioner_Hierarchies] as [ORGCOMM]
+ON OPA.[Der_Commissioner_Code] = ORGCOMM.[Organisation_Code]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+
+<br/>
+
+
+### Geospatial {.tabset .tabset-fade}
+
+#### LSOA
+In NCDR LSOA reference data can be obtained via the joins used below:
+```{sql OPA LSOA NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Der_Postcode_LSOA_Code]
+	  ,LSOA.[LSOA_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_LSOA] as [LSOA]
+ON OPA.[Der_Postcode_LSOA_Code] = LSOA.[LSOA]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Electoral Ward
+In NCDR Electoral Ward reference data can be obtained via the joins used below:
+```{sql OPA Electoral Ward NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Der_Postcode_Electoral_Ward]
+	  ,WARD.[Ward_Name]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Wards] as [WARD]
+ON OPA.[Der_Postcode_Electoral_Ward] = WARD.[Ward_Code]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+### Specialty and Treatment Function {.tabset .tabset-fade}
+
+#### Main Specialty
+In NCDR the Main Specialty reference data can be obtained via the joins used below:
+```{sql OPA Main Spec NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Main_Specialty_Code]
+      ,MSPEC.[Main_Specialty_Desc]
+      ,MSPEC.[Main_Specialty_Group]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_MainSpecialty] as [MSPEC]
+ON OPA.[Main_Specialty_Code] = MSPEC.[Main_Specialty_Code]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Treatment Function
+In NCDR the Treatment Function reference data can be obtained via the joins used below:
+```{sql OPA TFC NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Treatment_Function_Code]
+	  ,TFC.[Treatment_Function_Desc]
+	  ,TFC.[Treatment_Function_Group]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_TreatmentFunction] as [TFC]
+ON OPA.[Treatment_Function_Code] = TFC.[Treatment_Function_Code]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+### OPA Specific {.tabset .tabset-fade}
+
+#### First or Follow-Up
+In NCDR First or Follow-Up reference data can be obtained via the joins used below:
+```{sql OPA FirstFU NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[First_Attendance]
+	  ,FFU.[First_Attendance_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_FirstAttendance] as [FFU]
+ON OPA.[First_Attendance] = FFU.[First_Attendance]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Attendance Status
+In NCDR Attendance Status reference data can be obtained via the joins used below:
+```{sql OPA Att Status NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Attendance_Status]
+	  ,ATTSTAT.[Attendance_Status_Desc_Short]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_AttendanceStatus] as [ATTSTAT]
+ON OPA.[Attendance_Status] = ATTSTAT.[Attendance_Status]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Attendance Outcome
+In NCDR Attendance Outcome reference data can be obtained via the joins used below:
+```{sql OPA Att Outcome NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Outcome_of_Attendance]
+	  ,ATTOUT.[Attendance_Outcome_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_AttendanceOutcome] as [ATTOUT]
+ON OPA.[Outcome_of_Attendance] = ATTOUT.[Attendance_Outcome]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Primary Diagnosis
+In NCDR Diagnosis reference data can be obtained via the joins used below:
+```{sql OPA Prim Diag NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA_DIAG.[Primary_Diagnosis_Code]
+      ,REPLACE(OPA_DIAG.[Primary_Diagnosis_Code],'-','') as [Primary_Diagnosis_Code_TRUNC]
+      ,ICD.[ICD10_L4_Code]
+      ,ICD.[ICD10_L4_Desc]
+      ,ICD.[ICD10_L2_Desc]
+     
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA_Diag] as [OPA_DIAG]
+ON OPA.[OPA_Ident] = OPA_DIAG.[OPA_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ClinCode_ICD10_5ed] as [ICD]
+ON REPLACE(OPA_DIAG.[Primary_Diagnosis_Code],'-','') = ICD.[ICD10_L4_Code]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+This can easily be amended and replicated to obtain reference data for any secondary diagnoses.
+
+<br/>
+
+#### Primary Procedure
+In NCDR Procedure reference data can be obtained via the joins used below:
+```{sql OPA Prim Proc NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA_PROC.[Primary_Procedure_Code]
+      ,OPCS.[OPCS_L4_Desc]
+      ,OPCS.[OPCS_L2_Desc]
+     
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA_Proc] as [OPA_PROC]
+ON OPA.[OPA_Ident] = OPA_PROC.[OPA_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ClinCode_OPCS] as [OPCS]
+ON OPA_PROC.[Primary_Procedure_Code] = OPCS.[OPCS_L4_Code]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+This can easily be amended and replicated to obtain reference data for any secondary procedures.
+
+<br/>
+
+#### Consultation Medium
+In NCDR Consultation Used Medium reference data can be obtained via the joins used below:
+```{sql OPA Consultation Medium NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Consultation_Medium_Used]
+	  ,CONMED.[Consultation_Medium_Used_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_ConsultationMediumUsed] as [CONMED]
+ON OPA.[Consultation_Medium_Used] = CONMED.[Consultation_Medium_Used]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Priority
+In NCDR Priority Type reference data can be obtained via the joins used below:
+```{sql OPA Priority NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Priority_Type]
+	  ,PT.[Priority_Type_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_PriorityType] as [PT]
+ON OPA.[Priority_Type] = PT.[Priority_Type]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Referral Source
+In NCDR Referral Source reference data can be obtained via the joins used below:
+```{sql OPA Referral Source NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[OPA_Referral_Source]
+	  ,RS.[Referral_Source_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_ReferralSource] as [RS]
+ON OPA.[OPA_Referral_Source] = RS.[Referral_Source]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+<br/>
+
+#### Service Type Requested
+In NCDR Service Type Requested reference data can be obtained via the joins used below:
+```{sql OPA Service Type NCDR}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Service_Type_Requested]
+      ,STREQ.[Service_Type_Requested_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_ServiceTypeRequested] as [STREQ]
+ON OPA.[Service_Type_Requested] = STREQ.[Service_Type_Requested]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+
+<br/>
+
+### Full Script
+The script below shows how to run all of these joins in one main script:
+```{sql OPA Main}
+
+SELECT OPA.[OPA_Ident]
+      ,OPA.[Ethnic_Category]
+	  ,ETH.[Ethnic_Category_Desc]
+	  ,PG.[Person_Gender_Desc]
+	  ,OPA.[Der_Postcode_LSOA_Code]
+	  ,LSOA.[LSOA_Name]
+	  ,IMD.[IMD_Score]
+      ,IMD.[IMD_Decile]
+      ,IMD.[IMD_Rank]
+	  ,ADMCAT.[Administrative_Category_Desc]
+	  ,CSI.[Carer_Support_Ind_Desc]
+	  ,WIR.[Withheld_Identity_Reason_Desc]
+	  ,ORGPRO.[Organisation_Name]
+      ,ORGPRO.[STP_Code] as [Provider_ICB_Code]
+      ,ORGPRO.[STP_Name] as [Provider_ICB_Name]
+      ,ORGPRO.[Region_Code] as [Provider_Region_Code]
+      ,ORGPRO.[Region_Name] as [Provider_Region_Name]
+	  ,PRO_SITE.[Site_Name]
+	  ,ORGCOMM.[Organisation_Name] as [Commissioner_Name]
+	  ,ORGCOMM.[STP_Code] as [Commissioner_ICB_Code]
+	  ,ORGCOMM.[STP_Name] as [Commissioner_ICB_Name]
+	  ,ORGCOMM.[Region_Code] as [Commissioner_Region_Code]
+	  ,ORGCOMM.[Region_Name] as [Commissioner_Region_Name]
+	  ,LSOA.[LSOA_Name]
+	  ,WARD.[Ward_Name]
+	  ,OPA.[Main_Specialty_Code]
+      ,MSPEC.[Main_Specialty_Desc]
+      ,MSPEC.[Main_Specialty_Group]
+	  ,OPA.[Treatment_Function_Code]
+	  ,TFC.[Treatment_Function_Desc]
+	  ,TFC.[Treatment_Function_Group]
+	  ,FFU.[First_Attendance_Desc]
+	  ,ATTSTAT.[Attendance_Status_Desc_Short]
+	  ,ATTOUT.[Attendance_Outcome_Desc]
+	  ,OPA_DIAG.[Primary_Diagnosis_Code]
+      ,REPLACE(OPA_DIAG.[Primary_Diagnosis_Code],'-','') as [Primary_Diagnosis_Code_TRUNC]
+      ,ICD.[ICD10_L4_Code]
+      ,ICD.[ICD10_L4_Desc]
+      ,ICD.[ICD10_L2_Desc]
+	  ,OPA_PROC.[Primary_Procedure_Code]
+      ,OPCS.[OPCS_L4_Desc]
+      ,OPCS.[OPCS_L2_Desc]
+	  ,CONMED.[Consultation_Medium_Used_Desc]
+	  ,PT.[Priority_Type_Desc]
+	  ,RS.[Referral_Source_Desc]
+	  ,STREQ.[Service_Type_Requested_Desc]
+
+FROM [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA] as [OPA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_EthnicCategory] as [ETH]
+ON OPA.[Ethnic_Category] = ETH.[Ethnic_Category]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_PersonGender] as [PG]
+ON OPA.[Sex] = PG.[Person_Gender_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_LSOA] as [LSOA]
+ON OPA.[Der_Postcode_LSOA_Code] = LSOA.[LSOA]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_Other_Deprivation_By_LSOA] as [IMD]
+ON LSOA.[LSOA] = IMD.[LSOA_Code]
+AND IMD.[Effective_Snapshot_Date] = '2019-12-31'
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_AdministrativeCategory] as [ADMCAT]
+ON OPA.[Administrative_Category] = ADMCAT.[Administrative_Category]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_CarerSupportIndicator] as [CSI]
+ON OPA.[Carer_Support_Indicator] = CSI.[Carer_Support_Ind]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_WithheldIdentityReason] as [WIR]
+ON OPA.[Withheld_Identity_Reason] = WIR.[Withheld_Identity_Reason]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Hierarchies] as [ORGPRO]
+ON OPA.[Der_Provider_Code] = ORGPRO.[Organisation_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Provider_Site_Mappings] as [PRO_SITE]
+ON OPA.[Der_Provider_Site_Code] = PRO_SITE.[Site_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Commissioner_Hierarchies] as [ORGCOMM]
+ON OPA.[Der_Commissioner_Code] = ORGCOMM.[Organisation_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ODS_Wards] as [WARD]
+ON OPA.[Der_Postcode_Electoral_Ward] = WARD.[Ward_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_MainSpecialty] as [MSPEC]
+ON OPA.[Main_Specialty_Code] = MSPEC.[Main_Specialty_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_ZZZ_TreatmentFunction] as [TFC]
+ON OPA.[Treatment_Function_Code] = TFC.[Treatment_Function_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_FirstAttendance] as [FFU]
+ON OPA.[First_Attendance] = FFU.[First_Attendance]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_AttendanceStatus] as [ATTSTAT]
+ON OPA.[Attendance_Status] = ATTSTAT.[Attendance_Status]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_AttendanceOutcome] as [ATTOUT]
+ON OPA.[Outcome_of_Attendance] = ATTOUT.[Attendance_Outcome]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA_Diag] as [OPA_DIAG]
+ON OPA.[OPA_Ident] = OPA_DIAG.[OPA_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ClinCode_ICD10_5ed] as [ICD]
+ON REPLACE(OPA_DIAG.[Primary_Diagnosis_Code],'-','') = ICD.[ICD10_L4_Code]
+
+LEFT JOIN [NHSE_SUSPlus_Live].[dbo].[tbl_Data_SEM_OPA_Proc] as [OPA_PROC]
+ON OPA.[OPA_Ident] = OPA_PROC.[OPA_Ident]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_ClinCode_OPCS] as [OPCS]
+ON OPA_PROC.[Primary_Procedure_Code] = OPCS.[OPCS_L4_Code]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_ConsultationMediumUsed] as [CONMED]
+ON OPA.[Consultation_Medium_Used] = CONMED.[Consultation_Medium_Used]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_PriorityType] as [PT]
+ON OPA.[Priority_Type] = PT.[Priority_Type]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_ReferralSource] as [RS]
+ON OPA.[OPA_Referral_Source] = RS.[Referral_Source]
+
+LEFT JOIN [NHSE_Reference].[dbo].[tbl_Ref_DataDic_OPA_ServiceTypeRequested] as [STREQ]
+ON OPA.[Service_Type_Requested] = STREQ.[Service_Type_Requested]
+
+WHERE OPA.[Der_Provider_Code] = 'RXR'
+AND OPA.[Appointment_Date] = '2022-10-11'
+
+```
+
+
+<br/>
