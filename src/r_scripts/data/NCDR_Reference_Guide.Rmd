@@ -16,7 +16,7 @@ output:
 ```{r setup, include=FALSE}
 knitr::opts_chunk$set(echo = TRUE, eval = FALSE)
 
-source("packages.R")
+source("../requirements/packages.R")
 
 ```
 
