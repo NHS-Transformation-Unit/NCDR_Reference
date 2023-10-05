@@ -14,6 +14,7 @@ The repository currently has the following structure:
 
 ├───images
 └───src
+    ├───config
     ├───r_scripts
         ├───data
         └───requirements
@@ -27,8 +28,9 @@ Images such as the TU logos and branding to add to the html output.
 ### `src`
 All the code is stored within src. This is subdivided into two sections:
 
-1. `r_scripts`: This folder contains the R scripts required to produce the handy html output showing how to join to relevant reference datasets.
-2. `sql_scripts`: This folder contains the SQL scripts showing how to extract the data for each of the datasets on NCDR and the necessary joins to the reference data.
+1. `config`: This folder holds the `theme.css` script for the html output.
+2. `r_scripts`: This folder contains the R scripts required to produce the handy html output showing how to join to relevant reference datasets.
+3. `sql_scripts`: This folder contains the SQL scripts showing how to extract the data for each of the datasets on NCDR and the necessary joins to the reference data.
 
 ## Contributors
 
